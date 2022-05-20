@@ -1,9 +1,32 @@
-from nextcord import Interaction, Colour
+from nextcord import Interaction, Colour, SlashOption
 import nextcord
 from nextcord.ext import commands
+import youtube_dl
+from hori import GUILDS, CColour
 
-from hori import GUILDS
-reminds = {}
+
+def check_youtube_url(url: str) -> bool:
+    return url.replace('https://', '').startswith('www.youtube.com') or url.replace('https://', '').startswith('music.youtube.com')
+
+
+youtube_dl.utils.bug_reports_message = lambda: ''
+
+
+ytdl_format_options = {
+    'format': 'bestaudio/best',
+    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    'restrictfilenames': True,
+    'noplaylist': True,
+    'nocheckcertificate': True,
+    'ignoreerrors': False,
+    'logtostderr': False,
+    'quiet': True,
+    'no_warnings': True,
+    'default_search': 'auto',
+    'source_address': '0.0.0.0',
+}
+
+ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
 class Main(commands.Cog):
@@ -14,7 +37,7 @@ class Main(commands.Cog):
     async def cmd_help(self, inter: Interaction):
         await inter.response.defer()
         em = nextcord.Embed(title="Hori's commands",
-                            description="List of all Hori's commands with description", colour=Colour.from_rgb(186, 82, 235))
+                            description="List of all Hori's commands with description", colour=CColour.light_orange)
         em.set_thumbnail(url='attachment://happy-2.png')
         fields = {}
         for command in self.bot.get_all_application_commands():
