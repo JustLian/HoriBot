@@ -30,13 +30,13 @@ async def on_guild_remove(guild):
     db.delete_server(guild.id)
 
 
-print('Loading ', colored('Hori', 'magenta'), '...', sep='')
-for ext in os.listdir('./hori/cogs/'):
-    if ext.endswith('.py'):
-        bot.load_extension(f'hori.cogs.{ext[:-3]}')
-        print('Loaded extension',
-              colored(ext, 'blue', 'on_yellow'))
-print('Extensions loaded')
+if __name__ == '__main__':
+    print('Loading ', colored('Hori', 'magenta'), '...', sep='')
+    for ext in os.listdir('./hori/cogs/'):
+        if ext.endswith('.py'):
+            bot.load_extension(f'hori.cogs.{ext[:-3]}')
+            print('Loaded extension',
+                  colored(ext, 'blue', 'on_yellow'))
+    print('Extensions loaded')
 
-
-bot.run(_token)
+    bot.run(_token)
