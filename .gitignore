@@ -1,0 +1,5 @@
+/secrets
+/assets/emotes/full-size
+*.sqlite
+*.pyc
+changelog.txt

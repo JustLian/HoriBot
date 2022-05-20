@@ -1,0 +1,5 @@
+nextcord
+asyncio
+termcolor
+youtube_dl
+PyNaCl
