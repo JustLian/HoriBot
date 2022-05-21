@@ -1,32 +1,7 @@
 from nextcord import Interaction, Colour, SlashOption
 import nextcord
 from nextcord.ext import commands
-import youtube_dl
 from hori import GUILDS, CColour
-
-
-def check_youtube_url(url: str) -> bool:
-    return url.replace('https://', '').startswith('www.youtube.com') or url.replace('https://', '').startswith('music.youtube.com')
-
-
-youtube_dl.utils.bug_reports_message = lambda: ''
-
-
-ytdl_format_options = {
-    'format': 'bestaudio/best',
-    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
-    'restrictfilenames': True,
-    'noplaylist': True,
-    'nocheckcertificate': True,
-    'ignoreerrors': False,
-    'logtostderr': False,
-    'quiet': True,
-    'no_warnings': True,
-    'default_search': 'auto',
-    'source_address': '0.0.0.0',
-}
-
-ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 
 class Main(commands.Cog):

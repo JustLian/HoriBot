@@ -1,6 +1,7 @@
 import traceback
 from hori import GUILDS, db, CColour
 from pytube import Playlist
+from random import shuffle
 from nextcord import Interaction, SlashOption, Colour, Embed
 import nextcord
 from nextcord.ext import commands
@@ -43,6 +44,9 @@ async def start_radio(bot: commands.Bot, guild: int) -> None:
         while 0 in pool:
             pool.remove(0)
         queue.extend(pool)
+    if data['shuffle']:
+        shuffle(queue)
+    shuffle(queue)
     vc.queue.extend(queue)
 
     skips[guild.id] = []
