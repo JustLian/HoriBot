@@ -44,9 +44,9 @@ async def start_radio(bot: commands.Bot, guild: int) -> None:
         while 0 in pool:
             pool.remove(0)
         queue.extend(pool)
-    if data['shuffle']:
+    if bool(data['shuffle']):
+        print('shuffling!')
         shuffle(queue)
-    shuffle(queue)
     vc.queue.extend(queue)
 
     skips[guild.id] = []
@@ -297,6 +297,16 @@ class Radio(commands.Cog):
             em.set_thumbnail(url='attachment://happy-5.gif')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-5.gif'))
             return
+
+        db.update_server(inter.guild.id, ('radio_enabled', 0))
+        skips[inter.guild.id] = []
+        if inter.guild.voice_client is not None:
+            await inter.guild.voice_client.disconnect(force=True)
+
+        em = Embed(title='Radio was disabled!',
+                   description='Use command /radio on to enable it!', colour=CColour.brown)
+        em.set_thumbnail(url='attachment://thinking.png')
+        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/thinking.png'))
 
 
 def setup(bot):
