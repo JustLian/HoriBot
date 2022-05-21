@@ -54,15 +54,16 @@ async def start_radio(bot: commands.Bot, guild: int) -> None:
 
 
 async def add_track(url, pool, index, ready):
+    node = nextwave.NodePool.get_node()
     if 'music.youtube' in url:
         try:
-            t = await nextwave.YouTubeMusicTrack.search(url, return_first=True)
+            t = await node.get_tracks(nextwave.YouTubeMusicTrack, url)
             pool[index] = t
         except:
             pass
     else:
         try:
-            t = await nextwave.YouTubeTrack.search(url, return_first=True)
+            t = await node.get_tracks(nextwave.YouTubeTrack, url)
             pool[index] = t
         except:
             pass
