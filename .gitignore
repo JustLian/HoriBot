@@ -3,3 +3,4 @@
 *.sqlite
 *.pyc
 changelog.txt
+radio-old.py

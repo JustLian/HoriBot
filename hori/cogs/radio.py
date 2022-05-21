@@ -1,63 +1,19 @@
 import traceback
 from hori import GUILDS, db, CColour
+from pytube import Playlist
 from nextcord import Interaction, SlashOption, Colour, Embed
 import nextcord
-from math import floor
 from nextcord.ext import commands
 import asyncio
-import youtube_dl
+import json
+import nextcord
+from nextcord.ext import commands
+import nextwave
 
 
-youtube_dl.utils.bug_reports_message = lambda: ''
-ytdl_format_options = {
-    'format': 'bestaudio/best',
-    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
-    'restrictfilenames': True,
-    'noplaylist': False,
-    'nocheckcertificate': True,
-    'ignoreerrors': False,
-    'logtostderr': False,
-    'quiet': True,
-    'no_warnings': True,
-    'default_search': 'auto',
-    'source_address': '0.0.0.0',
-}
-ffmpeg_options = {
-    'options': '-vn',
-    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
-}
-ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
-
-skips = {}
-
-
-class YTDLSource(nextcord.PCMVolumeTransformer):
-    def __init__(self, source, *, data, volume=0.5):
-        super().__init__(source, volume)
-
-        self.data = data
-
-        self.title = data.get('title')
-        self.url = data.get('url')
-
-    @classmethod
-    async def from_url(cls, url, *, loop=None, stream=False):
-        loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
-
-        entrs = []
-        if 'entries' in data:
-            for entry in data['entries']:
-                filename = entry['url'] if stream else ytdl.prepare_filename(
-                    entry)
-                entrs.append((cls(nextcord.FFmpegPCMAudio(
-                    filename, **ffmpeg_options), data=entry), entry['duration'], entry['title']))
-        return entrs
-
-
-async def start_radio(bot: commands.Bot, guild_id: int, after=None) -> None:
-    data = db.get_server(guild_id)
-    guild = bot.get_guild(guild_id)
+async def start_radio(bot: commands.Bot, guild: int) -> None:
+    data = db.get_server(guild)
+    guild: nextcord.Guild = bot.get_guild(guild)
     if guild is None:
         return
 
@@ -65,84 +21,65 @@ async def start_radio(bot: commands.Bot, guild_id: int, after=None) -> None:
     if channel is None:
         return
 
-    if guild.voice_client is not None:
-        await guild.voice_client.disconnect(force=True)
-    await channel.connect()
+    if not guild.voice_client:
+        vc: nextwave.Player = await channel.connect(cls=nextwave.Player)
+    else:
+        vc: nextwave.Player = guild.voice_client
 
-    while True:
-        if guild.voice_client is None:
-            if db.get_server(guild_id)['radio_enabled'] == 1:
-                await channel.connect()
-            else:
-                break
+    queue = []
+    ready = []
+    for pl in enumerate(data['playlist_urls']):
+        urls = list(Playlist(pl[1]).video_urls)
+        pool = [0 for _ in range(len(urls))]
+        for url in enumerate(urls):
+            asyncio.create_task(
+                add_track(url[1], pool, url[0], ready))
+        while len(ready) != len(urls):
+            await guild.me.edit(nick=f"{bot.user.name} | Task {pl[0] + 1}/{len(data['playlist_urls'])}: {len(ready) + 1}/{len(urls)}")
+            await asyncio.sleep(2)
+        while 0 in pool:
+            pool.remove(0)
+        queue.extend(pool)
+    vc.queue.extend(queue)
+    print(len(vc.queue))
 
-        entries = await YTDLSource.from_url(data['playlist_url'], loop=bot.loop, stream=True)
-        if after is not None:
-            after()
-        for player in entries:
-            skips[guild_id] = []
-            guild.voice_client.play(player[0], after=lambda e: print(
-                f'Player error: {e}') if e else None)
-            print('playing')
-            while False if guild.voice_client is None else guild.voice_client.is_playing():
-                if len(skips[guild_id]) >= (len(channel.members) - 1) * 3 / 4:
-                    guild.voice_client.stop()
-                    print('skipping')
-                    break
-                await asyncio.sleep(2)
+    await vc.play(vc.queue.get())
 
 
-class Utilities(commands.Cog):
-    def __init__(self, bot):
-        self.bot: commands.Bot = bot
-
-    @nextcord.slash_command('skip', 'Skip current song', GUILDS)
-    async def cmd_skip(self, inter: Interaction):
-        await inter.response.defer()
-        data = db.get_server(inter.guild.id)
-
-        if inter.guild.id not in skips:
-            skips[inter.guild.id] = []
-
-        if data['radio_enabled'] == 0:
-            em = Embed(title="Radio is disabled",
-                       description="Use /radio on (admins only) to enable radio", colour=CColour.dark_brown)
-            em.set_thumbnail(url='attachment://sad.gif')
-            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
-            return
-
-        if inter.user.voice is None or inter.user.voice.channel.id != data['music_channel']:
-            em = Embed(title="Join radio channel",
-                       description="Join same channel as me to use that command!", colour=CColour.dark_brown)
-            em.set_thumbnail(url='attachment://surprised-1.png')
-            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/surprised-1.png'))
-            return
-
-        if inter.user.id in skips[inter.guild.id]:
-            em = Embed(title="You've already voted for skip",
-                       description="75% of listeners must vote to skip current song", colour=CColour.dark_brown)
-            em.set_thumbnail(url='attachment://happy-4.png')
-            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
-            return
-
-        skips[inter.guild.id].append(inter.user.id)
-
-        if len(skips[inter.guild.id]) < (len(inter.user.voice.channel.members) - 1) * 3 / 4:
-            em = Embed(title="Vote counted!",
-                       description="75% of listeners must vote to skip current song", colour=CColour.orange)
-            em.set_thumbnail(url='attachment://happy-3.png')
-            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-3.png'))
-            return
-
-        em = Embed(title="Vote counted!",
-                   description="Skipping current song!", colour=CColour.light_orange)
-        em.set_thumbnail(url='attachment://happy-5.gif')
-        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-5.gif'))
+async def add_track(url, pool, index, ready):
+    if 'music.youtube' in url:
+        try:
+            t = await nextwave.YouTubeMusicTrack.search(url, return_first=True)
+            pool[index] = t
+        except:
+            pass
+    else:
+        try:
+            t = await nextwave.YouTubeTrack.search(url, return_first=True)
+            pool[index] = t
+        except:
+            pass
+    ready.append(0)
 
 
 class Radio(commands.Cog):
-    def __init__(self, bot):
-        self.bot: commands.Bot = bot
+
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+
+        bot.loop.create_task(self.connect_nodes())
+
+    async def connect_nodes(self):
+        await self.bot.wait_until_ready()
+
+        with open('./secrets/lava_nodes.json', 'r') as f:
+            nodes = json.load(f)
+
+        for node in nodes:
+            await nextwave.NodePool.create_node(bot=self.bot,
+                                                host=node['host'],
+                                                port=node['port'],
+                                                password=node['password'])
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -156,8 +93,20 @@ class Radio(commands.Cog):
                     f'Error occurred in start_radio({self.bot}, {guild_id}): {e}')
                 traceback.print_exception(e)
 
-    @nextcord.slash_command('setup_radio', 'Setup 24/7 radio on your server', GUILDS)
-    async def cmd_setup_radio(self, inter: Interaction, url: str = SlashOption('playlist_link', 'Playlist link', True)):
+    @commands.Cog.listener()
+    async def on_wavelink_node_ready(self, node: nextwave.Node):
+        print(f'Node <{node.identifier}> is ready')
+
+    @commands.Cog.listener()
+    async def on_wavelink_track_start(self, player: nextwave.Player, track: nextwave.Track):
+        await player.guild.me.edit(nick=f"{self.bot.user.name} | {track.title}")
+
+    @commands.Cog.listener()
+    async def on_wavelink_track_end(self, player: nextwave.Player, track: nextwave.Track, reason):
+        pass
+
+    @nextcord.slash_command('radio_settings', 'Setup 24/7 radio on your server', GUILDS)
+    async def cmd_setup_radio(self, inter: Interaction, add_url: str = SlashOption('add_url', 'Add Youtube/YouTube Music playlist url to guild library', False), remove_url: str = SlashOption('remove_url', 'Remove YouTube/YouTube Music playlist from guild library', False), update_channel: bool = SlashOption('update_channel', "Set your current voicechannel to Hori's radio channel", False), shuffle: bool = SlashOption('shuffle', "Set if songs from all playlist should get shuffled every time radio starts", False)):
         await inter.response.defer()
 
         if not inter.user.guild_permissions.administrator:
@@ -167,23 +116,74 @@ class Radio(commands.Cog):
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.gif'))
             return
 
-        if inter.user.voice is None:
-            em = Embed(title='You are not in VC!',
-                       description='You need to join some VC to do that!', colour=Colour.brand_red())
-            em.set_thumbnail(url='attachment://sad-3.png')
-            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
+        data = db.get_server(inter.guild.id)
+
+        updates = []
+
+        if add_url:
+            if add_url in data['playlist_urls']:
+                em = Embed(title="Playlist is already in library",
+                           description="If you know that playlist is not in library report that on our github with your server id (https://github.com/JustLian/HoriBot", colour=CColour.dark_brown())
+                em.set_thumbnail(url='attachment://sad-3.png')
+                await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
+                return
+
+            data['playlist_urls'].append(add_url)
+            db.update_server(
+                inter.guild.id, ('playlist_urls', data['playlist_urls']))
+            updates.append('added new playlist')
+
+        if remove_url:
+            if add_url not in data['playlist_urls']:
+                em = Embed(title="Playlist is not in library",
+                           description="If you know that playlist is in library report that on our github with your server id (https://github.com/JustLian/HoriBot", colour=CColour.dark_brown())
+                em.set_thumbnail(url='attachment://sad-3.png')
+                await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
+                return
+
+            data['playlist_urls'].remove(add_url)
+            db.update_server(
+                inter.guild.id, ('playlist_urls', data['playlist_urls']))
+            updates.append('removed playlist')
+
+        if update_channel:
+            if not inter.user.voice:
+                em = Embed(title='You are not in VC!',
+                           description='You need to join some VC to do that!', colour=Colour.brand_red())
+                em.set_thumbnail(url='attachment://sad-3.png')
+                await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
+                return
+
+            db.update_server(inter.guild.id, ('music_channel',
+                             inter.user.voice.channel.id))
+            updates.append('updated radio channel')
+
+        if shuffle is not None:
+            db.update_server(inter.guild.id, ('shuffle', int(shuffle)))
+            updates.append(
+                f'{"enabled" if shuffle else "disabled"} shuffle feature')
+
+        if len(updates) > 0:
+
+            em = Embed(title='Updated settings',
+                       description=', '.join(updates).title(), colour=CColour.orange)
+            em.set_thumbnail(url='attachment://happy-4.png')
+
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
             return
 
-        channel = inter.user.voice.channel.id
+        em = Embed(title='Current radio settings', colour=CColour.orange)
+        em.set_thumbnail(url='attachment://happy-2.png')
+        em.add_field(name='Radio channel id',
+                     value=data['music_channel'], inline=True)
+        em.add_field(name='Radio enabled',
+                     value='yes' if data['radio_enabled'] else 'no', inline=True)
+        em.add_field(name='Shuffle enabled',
+                     value='yes' if data['shuffle'] else 'no', inline=True)
+        em.add_field(name='Playlist urls', value=', '.join(
+            data['playlist_urls']), inline=True)
 
-        db.update_server(inter.guild.id, ('music_channel', channel),
-                         ('playlist_url', url), ('radio_enabled', 0))
-
-        em = Embed(title='Everything is ready!',
-                   description='Use command /radio on to start your 24/7 radio!', colour=CColour.orange)
-        em.set_thumbnail(url='attachment://happy-4.png')
-
-        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
+        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-2.png'))
 
     @nextcord.slash_command('radio', 'Enable/disable radio', GUILDS)
     async def cmd_radio(self, inter: Interaction, toggle: str = SlashOption('toggle', 'Enable/disable radio', True, ['on', 'off'])):
@@ -199,14 +199,7 @@ class Radio(commands.Cog):
         toggle = toggle == 'on'
         data = db.get_server(inter.guild.id)
 
-        if bool(data['radio_enabled']) == toggle:
-            em = Embed(title='Action already done',
-                       description='Radio is already turned on/off', colour=Colour.brand_red())
-            em.set_thumbnail(url='attachment://happy-2.png')
-            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-2.png'))
-            return
-
-        if data['music_channel'] == 0 or data['playlist_url'] == 'NONE':
+        if data['music_channel'] == 0 or data['playlist_urls'] == []:
             em = Embed(title='Setup radio first!',
                        description='Use command /setup_radio to setup radio on your server. (You must have Administrator permissions)', colour=Colour.brand_red())
             em.set_thumbnail(url='attachment://shouting-1.png')
@@ -232,14 +225,10 @@ class Radio(commands.Cog):
             if inter.guild.voice_client is not None:
                 await inter.guild.voice_client.disconnect(force=True)
 
-            flag = asyncio.Event()
-            asyncio.get_event_loop().create_task(
-                start_radio(self.bot, inter.guild.id, flag.set))
+            await start_radio(self.bot, inter.guild.id)
 
             em.title = 'Setting everything up! Currently trying to get your playlist.'
             await inter.edit_original_message(embed=em)
-
-            await flag.wait()
 
             db.update_server(inter.guild.id, ('radio_enabled', 1))
             em.title = 'Everything is done!'
@@ -249,17 +238,6 @@ class Radio(commands.Cog):
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-5.gif'))
             return
 
-        db.update_server(inter.guild.id, ('radio_enabled', 0))
-        skips[inter.guild.id] = []
-        if inter.guild.voice_client is not None:
-            await inter.guild.voice_client.disconnect(force=True)
-
-        em = Embed(title='Radio was disabled!',
-                   description='Use command /radio on to enable it!', colour=CColour.brown)
-        em.set_thumbnail(url='attachment://shouting-1.png')
-        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/shouting-1.png'))
-
 
 def setup(bot):
     bot.add_cog(Radio(bot))
-    bot.add_cog(Utilities(bot))

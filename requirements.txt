@@ -3,3 +3,5 @@ asyncio
 termcolor
 youtube_dl
 PyNaCl
+pytube
+nextwave
