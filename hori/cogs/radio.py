@@ -11,6 +11,9 @@ from nextcord.ext import commands
 import nextwave
 
 
+skips = {}
+
+
 async def start_radio(bot: commands.Bot, guild: int) -> None:
     data = db.get_server(guild)
     guild: nextcord.Guild = bot.get_guild(guild)
@@ -41,8 +44,8 @@ async def start_radio(bot: commands.Bot, guild: int) -> None:
             pool.remove(0)
         queue.extend(pool)
     vc.queue.extend(queue)
-    print(len(vc.queue))
 
+    skips[guild.id] = []
     await vc.play(vc.queue.get())
 
 
@@ -60,6 +63,55 @@ async def add_track(url, pool, index, ready):
         except:
             pass
     ready.append(0)
+
+
+class Utilities(commands.Cog):
+    def __init__(self, bot):
+        self.bot: commands.Bot = bot
+
+    @nextcord.slash_command('skip', 'Skip current song', GUILDS)
+    async def cmd_skip(self, inter: Interaction):
+        await inter.response.defer()
+        data = db.get_server(inter.guild.id)
+
+        if inter.guild.id not in skips:
+            skips[inter.guild.id] = []
+
+        if data['radio_enabled'] == 0:
+            em = Embed(title="Radio is disabled",
+                       description="Use /radio on (admins only) to enable radio", colour=CColour.dark_brown)
+            em.set_thumbnail(url='attachment://sad.gif')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
+            return
+
+        if inter.user.voice is None or inter.user.voice.channel.id != data['music_channel']:
+            em = Embed(title="Join radio channel",
+                       description="Join same channel as me to use that command!", colour=CColour.dark_brown)
+            em.set_thumbnail(url='attachment://surprised-1.png')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/surprised-1.png'))
+            return
+
+        if inter.user.id in skips[inter.guild.id]:
+            em = Embed(title="You've already voted for skip",
+                       description="75% of listeners must vote to skip current song", colour=CColour.dark_brown)
+            em.set_thumbnail(url='attachment://happy-4.png')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
+            return
+
+        skips[inter.guild.id].append(inter.user.id)
+
+        if len(skips[inter.guild.id]) < (len(inter.user.voice.channel.members) - 1) * 3 / 4:
+            em = Embed(title="Vote counted!",
+                       description="75% of listeners must vote to skip current song", colour=CColour.orange)
+            em.set_thumbnail(url='attachment://happy-3.png')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-3.png'))
+            return
+
+        em = Embed(title="Vote counted!",
+                   description="Skipping current song!", colour=CColour.light_orange)
+        em.set_thumbnail(url='attachment://happy-5.gif')
+        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-5.gif'))
+        await inter.guild.voice_client.stop()
 
 
 class Radio(commands.Cog):
@@ -99,11 +151,15 @@ class Radio(commands.Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, player: nextwave.Player, track: nextwave.Track):
-        await player.guild.me.edit(nick=f"{self.bot.user.name} | {track.title}")
+        name = f"{self.bot.user.name} | {track.title}"
+        if len(name) > 32:
+            name = name[:30] + '..'
+        await player.guild.me.edit(nick=name)
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, player: nextwave.Player, track: nextwave.Track, reason):
-        pass
+        skips[player.guild.id] = []
+        await player.play(player.queue.get())
 
     @nextcord.slash_command('radio_settings', 'Setup 24/7 radio on your server', GUILDS)
     async def cmd_setup_radio(self, inter: Interaction, add_url: str = SlashOption('add_url', 'Add Youtube/YouTube Music playlist url to guild library', False), remove_url: str = SlashOption('remove_url', 'Remove YouTube/YouTube Music playlist from guild library', False), update_channel: bool = SlashOption('update_channel', "Set your current voicechannel to Hori's radio channel", False), shuffle: bool = SlashOption('shuffle', "Set if songs from all playlist should get shuffled every time radio starts", False)):
@@ -241,3 +297,4 @@ class Radio(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Radio(bot))
+    bot.add_cog(Utilities(bot))
