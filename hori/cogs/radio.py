@@ -163,7 +163,10 @@ class Radio(commands.Cog):
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, player: nextwave.Player, track: nextwave.Track, reason):
         skips[player.guild.id] = []
-        await player.play(player.queue.get())
+        try:
+            await player.play(player.queue.get())
+        except:
+            await start_radio(self.bot, player.guild.id)
 
     @nextcord.slash_command('radio_settings', 'Setup 24/7 radio on your server', GUILDS)
     async def cmd_setup_radio(self, inter: Interaction, add_url: str = SlashOption('add_url', 'Add Youtube/YouTube Music playlist url to guild library', False), remove_url: str = SlashOption('remove_url', 'Remove YouTube/YouTube Music playlist from guild library', False), update_channel: bool = SlashOption('update_channel', "Set your current voicechannel to Hori's radio channel", False), shuffle: bool = SlashOption('shuffle', "Set if songs from all playlist should get shuffled every time radio starts", False)):
