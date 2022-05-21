@@ -57,13 +57,13 @@ async def add_track(url, pool, index, ready):
     node = nextwave.NodePool.get_node()
     if 'music.youtube' in url:
         try:
-            t = await node.get_tracks(nextwave.YouTubeMusicTrack, url)
+            t = (await node.get_tracks(nextwave.YouTubeMusicTrack, url))[0]
             pool[index] = t
         except:
             pass
     else:
         try:
-            t = await node.get_tracks(nextwave.YouTubeTrack, url)
+            t = (await node.get_tracks(nextwave.YouTubeTrack, url))[0]
             pool[index] = t
         except:
             pass
