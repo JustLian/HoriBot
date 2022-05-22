@@ -1,13 +1,15 @@
+from pprint import pprint
 from nextcord import Interaction, Embed, SlashOption
 import lyricsgenius
 import nextcord
 from nextcord.ext import commands
 from hori import GUILDS, CColour
+import asyncio
 
 
 with open('./secrets/genius_token', 'r') as f:
     _genius_token = f.read().strip()
-genius = lyricsgenius.Genius(_genius_token)
+genius = lyricsgenius.Genius(_genius_token, verbose=False)
 
 
 class Main(commands.Cog):
@@ -33,14 +35,14 @@ class Main(commands.Cog):
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-2.png'))
 
     @nextcord.slash_command('lyrics', 'Find song lyrics', GUILDS)
-    async def cmd_lyrics(self, inter: Interaction, title: str = SlashOption('')):
+    async def cmd_lyrics(self, inter: Interaction, title: str = SlashOption('name', 'Song title', True)):
         await inter.response.defer()
 
-        song = genius.search_song(title)
+        song = await asyncio.get_event_loop().run_in_executor(None, genius.search_song, title)
 
         if song is None:
             em = Embed(title='Nothing found',
-                       description="I couldn't find a song with that title", colour=CColour.brown)
+                       description="I couldn't find song with that title", colour=CColour.brown)
             em.set_thumbnail(url='attachment://sad-3.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
             return
@@ -49,6 +51,27 @@ class Main(commands.Cog):
                    colour=CColour.light_orange)
         em.set_footer(text=song.artist)
         em.set_thumbnail(url=song.song_art_image_thumbnail_url)
+        await inter.edit_original_message(embed=em)
+
+    @nextcord.slash_command('artist', "Search artist's songs on Genius", GUILDS)
+    async def cmd_artist(self, inter: Interaction, name: str = SlashOption('name', "Artist's name", True)):
+        await inter.response.defer()
+
+        artist = await asyncio.get_event_loop().run_in_executor(
+            None, genius.search_artist, name, 15)
+
+        if artist is None:
+            em = Embed(title='Nothing found',
+                       description="I couldn't find artist with that title", colour=CColour.brown)
+            em.set_thumbnail(url='attachment://sad-3.png')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
+            return
+
+        em = Embed(title=f"{artist.name}'s songs",
+                   description=f"{len(artist.songs)} most popular")
+        for song in artist.songs:
+            em.add_field(name=song.title, value=f'[Genius page]({song.url})')
+
         await inter.edit_original_message(embed=em)
 
 
