@@ -5,3 +5,4 @@ youtube_dl
 PyNaCl
 pytube
 nextwave
+lyricsgenius
