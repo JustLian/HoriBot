@@ -32,9 +32,11 @@ async def on_guild_join(guild: nextcord.Guild):
                  value='https://github.com/JustLian/MarinBot', inline=False)
     em.set_thumbnail(url='attachment://happy-5.gif')
     if guild.system_channel is None:
-        channel = max([c for c in guild.channels if c.permissions_for(
-            guild.self_role).send_messages == True], key=lambda x: x.position)
-        await channel.send(embed=em, file=nextcord.File('./assets/emotes/happy-5.gif'))
+        channel = sorted([c for c in guild.text_channels if c.permissions_for(
+            guild.self_role).send_messages == True], key=lambda x: x.position, reverse=True)[-1]
+    else:
+        channel = guild.system_channel
+    await channel.send(embed=em, file=nextcord.File('./assets/emotes/happy-5.gif'))
     db.create_server(guild.id)
 
 
