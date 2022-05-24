@@ -1,23 +1,37 @@
 import asyncio
 import os
 import nextcord
-from hori import db, CColour
+from hori import db, CColour, PRESENCE_LOOP_COOLDOWN
 from termcolor import colored
 from nextcord import Embed
-from nextcord.ext import commands
+from nextcord.ext import commands, tasks
 
 
 with open('./secrets/bot_token', 'r') as f:
     _token = f.read().strip()
+restart_in = None
 
-bot = commands.Bot(intents=nextcord.Intents.all())
+bot = commands.Bot(command_prefix='hori/', intents=nextcord.Intents.all())
+
+
+@bot.event
+async def on_command_error(ctx, error):
+    pass
+
+
+@bot.command('restart_presence')
+async def cmd_restart_presence(ctx: commands.Context, minutes: int):
+    global restart_in
+    if (await bot.application_info()).owner.id == ctx.author.id:
+        restart_in = minutes
+        await ctx.reply('done')
 
 
 @bot.event
 async def on_ready():
     print('Loaded ', colored('Hori', 'magenta'), '!', sep='')
     await asyncio.sleep(2)
-    await bot.change_presence(activity=nextcord.Activity(type=nextcord.ActivityType.playing, name='/help'), status=nextcord.Status.online)
+    await presence_loop.start()
 
 
 @bot.event
@@ -43,6 +57,23 @@ async def on_guild_join(guild: nextcord.Guild):
 @bot.event
 async def on_guild_remove(guild):
     db.delete_server(guild.id)
+
+
+@tasks.loop(seconds=PRESENCE_LOOP_COOLDOWN * 2)
+async def presence_loop():
+    global restart_in
+    if restart_in is not None:
+        restart_in -= PRESENCE_LOOP_COOLDOWN / 60
+        if restart_in < 0:
+            restart_in = 0
+        await bot.change_presence(activity=nextcord.Activity(type=nextcord.ActivityType.watching, name=f'Restart in {round(restart_in)} minutes'), status=nextcord.Status.dnd)
+        return
+
+    print('change')
+    await bot.change_presence(activity=nextcord.Activity(type=nextcord.ActivityType.playing, name='/help'), status=nextcord.Status.online)
+    await asyncio.sleep(PRESENCE_LOOP_COOLDOWN)
+    print('change')
+    await bot.change_presence(activity=nextcord.Activity(type=nextcord.ActivityType.watching, name=f'{len(bot.guilds)} servers'), status=nextcord.Status.online)
 
 
 if __name__ == '__main__':
