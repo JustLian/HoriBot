@@ -69,10 +69,8 @@ async def presence_loop():
         await bot.change_presence(activity=nextcord.Activity(type=nextcord.ActivityType.watching, name=f'Restart in {round(restart_in)} minutes'), status=nextcord.Status.dnd)
         return
 
-    print('change')
     await bot.change_presence(activity=nextcord.Activity(type=nextcord.ActivityType.playing, name='/help'), status=nextcord.Status.online)
     await asyncio.sleep(PRESENCE_LOOP_COOLDOWN)
-    print('change')
     await bot.change_presence(activity=nextcord.Activity(type=nextcord.ActivityType.watching, name=f'{len(bot.guilds)} servers'), status=nextcord.Status.online)
 
 

@@ -1,4 +1,3 @@
-from pprint import pprint
 from nextcord import Interaction, Embed, SlashOption
 import lyricsgenius
 import nextcord
