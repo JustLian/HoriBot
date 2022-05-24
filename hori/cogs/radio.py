@@ -45,7 +45,6 @@ async def start_radio(bot: commands.Bot, guild: int) -> None:
             pool.remove(0)
         queue.extend(pool)
     if bool(data['shuffle']):
-        print('shuffling!')
         shuffle(queue)
     vc.queue.extend(queue)
 
@@ -167,7 +166,8 @@ class Radio(commands.Cog):
         try:
             await player.play(player.queue.get())
         except:
-            await start_radio(self.bot, player.guild.id)
+            if db.get_server(player.guild.id)['radio_enabled'] == 1:
+                await start_radio(self.bot, player.guild.id)
 
     @nextcord.slash_command('radio_settings', 'Setup 24/7 radio on your server', GUILDS)
     async def cmd_setup_radio(self, inter: Interaction, add_url: str = SlashOption('add_url', 'Add Youtube/YouTube Music playlist url to guild library', False), remove_url: str = SlashOption('remove_url', 'Remove YouTube/YouTube Music playlist from guild library', False), update_channel: bool = SlashOption('update_channel', "Set your current voicechannel to Hori's radio channel", False), shuffle: bool = SlashOption('shuffle', "Set if songs from all playlist should get shuffled every time radio starts", False)):
@@ -305,6 +305,8 @@ class Radio(commands.Cog):
         db.update_server(inter.guild.id, ('radio_enabled', 0))
         skips[inter.guild.id] = []
         if inter.guild.voice_client is not None:
+            inter.guild.voice_client.queue.clear()
+            inter.guild.voice_client.stop()
             await inter.guild.voice_client.disconnect(force=True)
 
         em = Embed(title='Radio was disabled!',
