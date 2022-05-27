@@ -1,4 +1,7 @@
+from re import I, S
 import traceback
+
+from pyrsistent import discard
 from hori import GUILDS, db, CColour
 from pytube import Playlist
 from random import shuffle
@@ -81,15 +84,21 @@ class Utilities(commands.Cog):
         if inter.guild.id not in skips:
             skips[inter.guild.id] = []
 
-        if data['radio_enabled'] == 0:
-            em = Embed(title="Radio is disabled",
-                       description="Use /radio on (admins only) to enable radio", colour=CColour.dark_brown)
+        not_playing = False
+        if inter.guild.voice_client is None:
+            not_playing = True
+        elif not inter.guild.voice_client.is_playing():
+            not_playing = True
+
+        if not_playing:
+            em = Embed(title="Nothing is playing rightnow",
+                       description="Use /radio on (admins only) to enable radio or /play <query> to play anything from YT/YTMusic", colour=CColour.dark_brown)
             em.set_thumbnail(url='attachment://sad.gif')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
             return
 
-        if inter.user.voice is None or inter.user.voice.channel.id != data['music_channel']:
-            em = Embed(title="Join radio channel",
+        if inter.user.voice is None or inter.user.voice.channel != inter.guild.voice_client.channel:
+            em = Embed(title="Join my VC!",
                        description="Join same channel as me to use that command!", colour=CColour.dark_brown)
             em.set_thumbnail(url='attachment://surprised-1.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/surprised-1.png'))
@@ -168,6 +177,8 @@ class Radio(commands.Cog):
         except:
             if db.get_server(player.guild.id)['radio_enabled'] == 1:
                 await start_radio(self.bot, player.guild.id)
+                return
+            await player.guild.me.edit(nick=self.bot.user.name)
 
     @nextcord.slash_command('radio_settings', 'Setup 24/7 radio on your server', GUILDS)
     async def cmd_setup_radio(self, inter: Interaction, add_url: str = SlashOption('add_url', 'Add Youtube/YouTube Music playlist url to guild library', False), remove_url: str = SlashOption('remove_url', 'Remove YouTube/YouTube Music playlist from guild library', False), update_channel: bool = SlashOption('update_channel', "Set your current voicechannel to Hori's radio channel", False), shuffle: bool = SlashOption('shuffle', "Set if songs from all playlist should get shuffled every time radio starts", False)):
@@ -306,7 +317,7 @@ class Radio(commands.Cog):
         skips[inter.guild.id] = []
         if inter.guild.voice_client is not None:
             inter.guild.voice_client.queue.clear()
-            inter.guild.voice_client.stop()
+            await inter.guild.voice_client.stop()
             await inter.guild.voice_client.disconnect(force=True)
 
         em = Embed(title='Radio was disabled!',
@@ -315,6 +326,180 @@ class Radio(commands.Cog):
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/thinking.png'))
 
 
+async def check_radio(inter: Interaction) -> bool:
+    if inter.guild.voice_client is not None:
+        if db.get_server(inter.guild.id)['radio_enabled'] == 1:
+            em = Embed(title='Turn off radio first!',
+                       description="To use that feature you need to turn off radio using command /radio off", colour=Colour.brand_red())
+            em.set_thumbnail(url='attachment://sad.gif')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
+            return True
+        return False
+
+
+async def setup_player(inter: Interaction) -> bool:
+    if inter.user.voice is None:
+        em = Embed(title='You are not in VC',
+                   description='To use that command you need to be in VC', colour=Colour.brand_red())
+        em.set_thumbnail(url='attachment://happy-4.png')
+        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
+        return False
+
+    if inter.guild.voice_client is not None:
+        vc: nextwave.Player = inter.guild.voice_client
+        if vc.channel != inter.user.voice.channel:
+            em = Embed(title='You are in wrong VC',
+                       description=f'Join my VC ({vc.channel.name}) to use that command!', colour=Colour.brand_red())
+            em.set_thumbnail(url='attachment://sad.gif')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
+            return False
+    else:
+        await inter.user.voice.channel.connect(cls=nextwave.Player)
+    return True
+
+
+async def add_player_track(query: str, vc: nextwave.Player) -> None | str:
+    node = nextwave.NodePool.get_node()
+    if 'https://music.youtube.com/' in query:
+        try:
+            vc.queue.extend(await node.get_tracks(nextwave.YouTubeMusicTrack, query))
+        except:
+            return 'Invalid YTMusic link'
+    elif 'https://www.youtube.com/' in query:
+        try:
+            vc.queue.extend(await node.get_tracks(nextwave.YouTubeTrack, query))
+        except:
+            return 'Invalid YT link'
+    else:
+        try:
+            vc.queue.put((await nextwave.YouTubeTrack.search(query))[0])
+        except:
+            return 'Nothing found for this query'
+
+
+class Player(commands.Cog):
+    def __init__(self, bot):
+        self.bot: commands.Bot = bot
+
+    @nextcord.slash_command('play', 'Play song from link/YT search')
+    async def cmd_play(self, inter: Interaction, query: str = SlashOption('query', 'Link to YT/YTMusic video or video name', True)):
+        await inter.response.defer()
+        if await check_radio(inter):
+            return
+
+        if not await setup_player(inter):
+            return
+
+        vc: nextwave.Player = inter.guild.voice_client
+
+        res = await add_player_track(query, vc)
+        if res is not None:
+            em = Embed(title='Try another query',
+                       description=res, colour=Colour.brand_red())
+            em.set_thumbnail(url='attachment://sad-3.png')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
+            return
+
+        if not vc.is_playing() and not vc.is_paused():
+            await vc.play(vc.queue.get())
+
+        em = Embed(title='Done!', description='Added new song to queue',
+                   colour=CColour.light_orange)
+        em.set_thumbnail(url='attachment://happy-2.png')
+        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-2.png'))
+
+    @nextcord.slash_command('queue', 'Show list of songs in the queue')
+    async def cmd_queue(self, inter: Interaction):
+        await inter.response.defer()
+        if await check_radio(inter):
+            return
+
+        if not await setup_player(inter):
+            return
+
+        vc: nextwave.Player = inter.guild.voice_client
+        em = Embed(title='Queue', colour=CColour.orange, description=f'**1** | {vc.track.title}\n' + '\n'.join([
+            f'**{s[0] + 2}** | {s[1].title}' for s in enumerate(vc.queue)]))
+        em.set_thumbnail(url='attachment://happy-4.png')
+        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
+
+    @nextcord.slash_command('force_skip', 'Force skip current song (Manage channels permission)')
+    async def cmd_fs(self, inter: Interaction):
+        await inter.response.defer()
+        if await check_radio(inter):
+            return
+
+        if not await setup_player(inter):
+            return
+
+        if not inter.user.guild_permissions.manage_channels:
+            em = Embed(title='No permissions',
+                       description="You don't have Manage channels permission", colour=CColour.dark_brown)
+            em.set_thumbnail(url='attachment://sad-3.png')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./asssets/emotes/sad-3.png'))
+            return
+
+        em = Embed(title="Skipping current song!",
+                   description="Bot will stop playing anything if there are not more songs left in the queue (/queue)", colour=CColour.light_orange)
+        em.set_thumbnail(url='attachment://happy-5.gif')
+        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-5.gif'))
+        await inter.guild.voice_client.stop()
+
+    @nextcord.slash_command('pause', 'Pause/resume player')
+    async def cmd_pause(self, inter: Interaction):
+        await inter.response.defer()
+        if await check_radio(inter):
+            return
+
+        if not await setup_player(inter):
+            return
+
+        if not inter.user.guild_permissions.manage_channels:
+            em = Embed(title='No permissions',
+                       description="You don't have Manage channels permission", colour=CColour.dark_brown)
+            em.set_thumbnail(url='attachment://sad-3.png')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./asssets/emotes/sad-3.png'))
+            return
+
+        vc: nextwave.Player = inter.guild.voice_client
+
+        if vc.is_paused():
+            await vc.resume()
+            em = Embed(title="Resumed!",
+                       description="Use /pause again to pause", colour=CColour.light_orange)
+            em.set_thumbnail(url='attachment://happy-4.png')
+        else:
+            await vc.pause()
+            em = Embed(title="Paused!",
+                       description="Use /pause again to resume", colour=CColour.light_orange)
+            em.set_thumbnail(url='attachment://happy-4.png')
+
+        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
+
+    @nextcord.slash_command('stop', 'Stop player')
+    async def cmd_stop(self, inter: Interaction):
+        await inter.response.defer()
+        if await check_radio(inter):
+            return
+
+        if inter.guild.voice_client is None:
+            em = Embed(title="Nothing is playing",
+                       description="Bot isn't playing anything", colour=CColour.brown)
+            em.set_thumbnail(url='attachment://sag-2.gif')
+            await inter.edit_original_message(embed=em, file='./assets/emotes/sag-2.gif')
+            return
+
+        vc: nextwave.Player = inter.guild.voice_client
+        vc.queue.clear()
+        await vc.stop()
+        await vc.disconnect()
+        em = Embed(title="Stopped!",
+                   description="I hope you liked the music!", colour=CColour.light_orange)
+        em.set_thumbnail(url='attachment://happy-4.png')
+        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
+
+
 def setup(bot):
     bot.add_cog(Radio(bot))
+    bot.add_cog(Player(bot))
     bot.add_cog(Utilities(bot))
