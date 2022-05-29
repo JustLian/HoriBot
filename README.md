@@ -1,5 +1,6 @@
 # HoriBot
 [![Discord Bots](https://top.gg/api/widget/servers/977152841514901555.svg)](https://top.gg/bot/977152841514901555)
+[Invite](https://discord.com/api/oauth2/authorize?client_id=977152841514901555&permissions=70257664&scope=bot%20applications.commands)
 
 Free 24/7 Radio bot
 
