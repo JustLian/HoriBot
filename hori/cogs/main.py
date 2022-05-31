@@ -54,9 +54,12 @@ class Main(commands.Cog):
         em.set_footer(text=song.artist)
         em.set_thumbnail(url=song.song_art_image_thumbnail_url)
         await inter.edit_original_message(embed=em)
-        for n in range(6096, len(lyrics), 2000):
-            await inter.send(lyrics[n - 2000:n])
-        await inter.send(lyrics[n:])
+        if len(lyrics) > 4096:
+            last = 0
+            for n in range(6096, len(lyrics), 2000):
+                await inter.send(lyrics[n - 2000:n])
+                last = n
+            await inter.send(lyrics[last:])
 
     @ nextcord.slash_command('artist', "Search artist's songs on Genius", GUILDS)
     async def cmd_artist(self, inter: Interaction, name: str = SlashOption('name', "Artist's name", True)):
