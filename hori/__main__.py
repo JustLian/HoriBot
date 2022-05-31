@@ -37,13 +37,13 @@ async def on_ready():
 @bot.event
 async def on_guild_join(guild: nextcord.Guild):
     em = Embed(title='Thanks for inviting!',
-               description="Hi! Thankyou for inviting me :> Setup your free 24/7 radio using /setup_radio commad!", colour=CColour.light_orange)
+               description="Hi! Thankyou for inviting me :> Setup your free 24/7 radio using /radio_settings commad!", colour=CColour.light_orange)
     em.add_field(name='Developer',
-                 value='https://github.com/JustLian', inline=False)
+                 value='[GITHUB](https://github.com/JustLian)', inline=False)
     em.add_field(name='HoriBot on Github',
-                 value='https://github.com/JustLian/HoriBot', inline=False)
-    em.add_field(name='MarinBot on Github',
-                 value='https://github.com/JustLian/MarinBot', inline=False)
+                 value='[GITHUB](https://github.com/JustLian/HoriBot)', inline=False)
+    em.add_field(name='Support server',
+                 value='[DISCORD](https://discord.gg/gSvt9TpHkG)', inline=False)
     em.set_thumbnail(url='attachment://happy-5.gif')
     if guild.system_channel is None:
         channel = sorted([c for c in guild.text_channels if c.permissions_for(
