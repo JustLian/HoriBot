@@ -1,3 +1,4 @@
+import traceback
 from nextcord import Interaction, Embed, SlashOption
 import lyricsgenius
 import nextcord
@@ -46,13 +47,18 @@ class Main(commands.Cog):
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
             return
 
-        em = Embed(title=song.title, description="Lyrics:\n" + 'Lyrics'.join(song.lyrics.split('Lyrics')[1:]),
-                   colour=CColour.light_orange)
+        lyrics = "Lyrics:\n" + 'Lyrics'.join(song.lyrics.split('Lyrics')[1:])
+
+        em = Embed(title=song.title, description=lyrics[:4096] if len(lyrics) > 4096 else lyrics,
+                   colour=CColour.light_orange, url=song.url)
         em.set_footer(text=song.artist)
         em.set_thumbnail(url=song.song_art_image_thumbnail_url)
         await inter.edit_original_message(embed=em)
+        for n in range(6096, len(lyrics), 2000):
+            await inter.send(lyrics[n - 2000:n])
+        await inter.send(lyrics[n:])
 
-    @nextcord.slash_command('artist', "Search artist's songs on Genius", GUILDS)
+    @ nextcord.slash_command('artist', "Search artist's songs on Genius", GUILDS)
     async def cmd_artist(self, inter: Interaction, name: str = SlashOption('name', "Artist's name", True)):
         await inter.response.defer()
 
@@ -72,6 +78,14 @@ class Main(commands.Cog):
             em.add_field(name=song.title, value=f'[Genius page]({song.url})')
 
         await inter.edit_original_message(embed=em)
+
+    @commands.Cog.listener()
+    async def on_application_command_error(self, inter: Interaction, err):
+        em = Embed(title='Error occurred!',
+                   description='Please copy text from message below and create bug report on [Github](https://github.com/JustLian/HoriBot) or contact developer on [support server](https://discord.gg/gSvt9TpHkG)')
+        em.set_thumbnail(url='attachment://sad.gif')
+        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
+        await inter.send(''.join(traceback.format_exception(err)))
 
 
 def setup(bot):
