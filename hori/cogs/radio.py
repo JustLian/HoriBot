@@ -188,7 +188,7 @@ class Radio(commands.Cog):
             em = Embed(title="No permissions",
                        description="You don't have enough permissions to execute that command!", colour=Colour.brand_red())
             em.set_thumbnail(url='attachment://sad-3.png')
-            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.gif'))
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
             return
 
         data = db.get_server(inter.guild.id)
@@ -268,7 +268,7 @@ class Radio(commands.Cog):
             em = Embed(title="No permissions",
                        description="You don't have enough permissions to execute that command!", colour=Colour.brand_red())
             em.set_thumbnail(url='attachment://sad-3.png')
-            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.gif'))
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
             return
 
         toggle = toggle == 'on'
