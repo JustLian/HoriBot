@@ -1,0 +1,16 @@
+{
+    "ID": "EN",
+    "HELP_TITLE": "Hori's commands",
+    "HELP_DESC": "List of all Hori's commands with description",
+    "LYRICS_NOTHINGFOUND_TITLE": "Nothing found",
+    "LYRICS_NOTHINGFOUND_DESC": "I couldn't find song with that title",
+    "LYRICS_LYRICS": "Lyrics",
+    "ARTIST_NOTHINGFOUND_TITLE": "Nothing found",
+    "ARTIST__NOTHINGFOUND_DESC": "I couldn't find artist with that name",
+    "ARTIST_TITLE": "{}'s songs",
+    "ARTIST_DESC": "{} most popular",
+    "ERROR_TITLE": "Error occurred!",
+    "ERROR_DESC": "Please copy text from message below and create bug report on [Github](https://github.com/JustLian/HoriBot) or contact developer on [support server](https://discord.gg/gSvt9TpHkG)",
+    "SKIP_NOTPLAYING_TITLE": "Nothing is playing rightnow",
+    "SKIP_NOTPLAYING_DESC": "Use /radio on (admins only) to enable radio or /play <query> to play anything from YT/YTMusic"
+}

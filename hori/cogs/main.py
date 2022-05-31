@@ -1,4 +1,5 @@
 import traceback
+from hori.languages import tr
 from nextcord import Interaction, Embed, SlashOption
 import lyricsgenius
 import nextcord
@@ -19,8 +20,8 @@ class Main(commands.Cog):
     @nextcord.slash_command('help', 'List all commands', GUILDS)
     async def cmd_help(self, inter: Interaction):
         await inter.response.defer()
-        em = nextcord.Embed(title="Hori's commands",
-                            description="List of all Hori's commands with description", colour=CColour.light_orange)
+        em = nextcord.Embed(title=tr(inter, "HELP_TITLE"),
+                            description=tr(inter, "HELP_TITLE"), colour=CColour.light_orange)
         em.set_thumbnail(url='attachment://happy-2.png')
         fields = {}
         for command in self.bot.get_all_application_commands():
@@ -41,13 +42,14 @@ class Main(commands.Cog):
         song = await asyncio.get_event_loop().run_in_executor(None, genius.search_song, title)
 
         if song is None:
-            em = Embed(title='Nothing found',
-                       description="I couldn't find song with that title", colour=CColour.brown)
+            em = Embed(title=tr(inter, "LYRICS_NOTHINGFOUND_TITLE"),
+                       description=tr(inter, "LYRICS_NOTHINGFOUND_DESC"), colour=CColour.brown)
             em.set_thumbnail(url='attachment://sad-3.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
             return
 
-        lyrics = "Lyrics:\n" + 'Lyrics'.join(song.lyrics.split('Lyrics')[1:])
+        lyrics = tr(inter, "LYRICS_LYRICS") + "\n" + \
+            'Lyrics'.join(song.lyrics.split('Lyrics')[1:])
 
         em = Embed(title=song.title, description=lyrics[:4096] if len(lyrics) > 4096 else lyrics,
                    colour=CColour.light_orange, url=song.url)
@@ -69,23 +71,24 @@ class Main(commands.Cog):
             None, genius.search_artist, name, 15)
 
         if artist is None:
-            em = Embed(title='Nothing found',
-                       description="I couldn't find artist with that title", colour=CColour.brown)
+            em = Embed(title=tr(inter, "ARTIST_NOTHINGFOUND_TITLE"),
+                       description=tr(inter, "ARTIST__NOTHINGFOUND_DESC"), colour=CColour.brown)
             em.set_thumbnail(url='attachment://sad-3.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
             return
 
-        em = Embed(title=f"{artist.name}'s songs",
-                   description=f"{len(artist.songs)} most popular")
+        em = Embed(title=tr(inter, "ARTIST_TITLE").format(artist.name),
+                   description=tr(inter, "ARTIST_DESC").format(
+                       len(artist.songs)))
         for song in artist.songs:
             em.add_field(name=song.title, value=f'[Genius page]({song.url})')
 
         await inter.edit_original_message(embed=em)
 
-    @commands.Cog.listener()
+    @ commands.Cog.listener()
     async def on_application_command_error(self, inter: Interaction, err):
-        em = Embed(title='Error occurred!',
-                   description='Please copy text from message below and create bug report on [Github](https://github.com/JustLian/HoriBot) or contact developer on [support server](https://discord.gg/gSvt9TpHkG)')
+        em = Embed(title=tr(inter, "ERROR_TITLE"),
+                   description=tr(inter, "ERROR_DESC"))
         em.set_thumbnail(url='attachment://sad.gif')
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
         await inter.send(''.join(traceback.format_exception(err)))

@@ -1,7 +1,5 @@
-from re import I, S
 import traceback
-
-from pyrsistent import discard
+from hori.languages import tr
 from hori import GUILDS, db, CColour
 from pytube import Playlist
 from random import shuffle
@@ -91,8 +89,8 @@ class Utilities(commands.Cog):
             not_playing = True
 
         if not_playing:
-            em = Embed(title="Nothing is playing rightnow",
-                       description="Use /radio on (admins only) to enable radio or /play <query> to play anything from YT/YTMusic", colour=CColour.dark_brown)
+            em = Embed(title=tr(inter, "SKIP_NOTPLAYING"),
+                       description=tr(inter, "SKIP_NOTPLAYING_DESC"), colour=CColour.dark_brown)
             em.set_thumbnail(url='attachment://sad.gif')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
             return
