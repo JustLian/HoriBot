@@ -89,22 +89,22 @@ class Utilities(commands.Cog):
             not_playing = True
 
         if not_playing:
-            em = Embed(title=tr(inter, "SKIP_NOTPLAYING"),
+            em = Embed(title=tr(inter, "SKIP_NOTPLAYING_TITLE"),
                        description=tr(inter, "SKIP_NOTPLAYING_DESC"), colour=CColour.dark_brown)
             em.set_thumbnail(url='attachment://sad.gif')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
             return
 
         if inter.user.voice is None or inter.user.voice.channel != inter.guild.voice_client.channel:
-            em = Embed(title="Join my VC!",
-                       description="Join same channel as me to use that command!", colour=CColour.dark_brown)
+            em = Embed(title=tr(inter, "SKIP_JOINVC_TITLE"),
+                       description=tr(inter, "SKIP_JOINVC_DESC"), colour=CColour.dark_brown)
             em.set_thumbnail(url='attachment://surprised-1.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/surprised-1.png'))
             return
 
         if inter.user.id in skips[inter.guild.id]:
-            em = Embed(title="You've already voted for skip",
-                       description="75% of listeners must vote to skip current song", colour=CColour.dark_brown)
+            em = Embed(title=tr(inter, "SKIP_VOTED_TITLE"),
+                       description=tr(inter, "SKIP_VOTED_DESC"), colour=CColour.dark_brown)
             em.set_thumbnail(url='attachment://happy-4.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
             return
@@ -112,14 +112,14 @@ class Utilities(commands.Cog):
         skips[inter.guild.id].append(inter.user.id)
 
         if len(skips[inter.guild.id]) < (len(inter.user.voice.channel.members) - 1) * 3 / 4:
-            em = Embed(title="Vote counted!",
-                       description="75% of listeners must vote to skip current song", colour=CColour.orange)
+            em = Embed(title=tr(inter, "SKIP_VOTE_COUNTED"),
+                       description=tr(inter, "SKIP_VOTED_DESC"), colour=CColour.orange)
             em.set_thumbnail(url='attachment://happy-3.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-3.png'))
             return
 
-        em = Embed(title="Vote counted!",
-                   description="Skipping current song!", colour=CColour.light_orange)
+        em = Embed(title=tr(inter, "SKIP_VOTE_COUNTED"),
+                   description=tr(inter, "SKIP_SKIPPING"), colour=CColour.light_orange)
         em.set_thumbnail(url='attachment://happy-5.gif')
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-5.gif'))
         await inter.guild.voice_client.stop()
@@ -183,8 +183,8 @@ class Radio(commands.Cog):
         await inter.response.defer()
 
         if not inter.user.guild_permissions.administrator:
-            em = Embed(title="No permissions",
-                       description="You don't have enough permissions to execute that command!", colour=Colour.brand_red())
+            em = Embed(title=tr(inter, "NO_PERMISSIONS_TITLE"),
+                       description=tr(inter, "NO_PERMISSIONS_DESC"), colour=Colour.brand_red())
             em.set_thumbnail(url='attachment://sad-3.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.gif'))
             return
@@ -195,8 +195,8 @@ class Radio(commands.Cog):
 
         if add_url:
             if add_url in data['playlist_urls']:
-                em = Embed(title="Playlist is already in library",
-                           description="If you know that playlist is not in library report that on our github with your server id (https://github.com/JustLian/HoriBot", colour=CColour.dark_brown())
+                em = Embed(title=tr(inter, "RS_INLIB_TITLE"),
+                           description=tr(inter, "RS_INLIB_DESC"), colour=CColour.dark_brown())
                 em.set_thumbnail(url='attachment://sad-3.png')
                 await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
                 return
@@ -208,8 +208,8 @@ class Radio(commands.Cog):
 
         if remove_url:
             if add_url not in data['playlist_urls']:
-                em = Embed(title="Playlist is not in library",
-                           description="If you know that playlist is in library report that on our github with your server id (https://github.com/JustLian/HoriBot", colour=CColour.dark_brown())
+                em = Embed(title=tr("RS_NOT_INLIB_TITLE"),
+                           description=tr("RS_NOT_INLIB_DESC"), colour=CColour.dark_brown())
                 em.set_thumbnail(url='attachment://sad-3.png')
                 await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
                 return
@@ -221,8 +221,8 @@ class Radio(commands.Cog):
 
         if update_channel:
             if not inter.user.voice:
-                em = Embed(title='You are not in VC!',
-                           description='You need to join some VC to do that!', colour=Colour.brand_red())
+                em = Embed(title=tr(inter, "RS_NOT_IN_VC_TITLE"),
+                           description=tr(inter, "RS_NOT_IN_VC_DESC"), colour=Colour.brand_red())
                 em.set_thumbnail(url='attachment://sad-3.png')
                 await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
                 return
@@ -238,22 +238,23 @@ class Radio(commands.Cog):
 
         if len(updates) > 0:
 
-            em = Embed(title='Updated settings',
+            em = Embed(title=tr(inter, "RS_UPDATED"),
                        description=', '.join(updates).title(), colour=CColour.orange)
             em.set_thumbnail(url='attachment://happy-4.png')
 
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
             return
 
-        em = Embed(title='Current radio settings', colour=CColour.orange)
+        em = Embed(title=tr(inter, "RS_CURRENT_SETTINGS"),
+                   colour=CColour.orange)
         em.set_thumbnail(url='attachment://happy-2.png')
-        em.add_field(name='Radio channel id',
+        em.add_field(name=tr(inter, "RS_RADIO_CHANNEL"),
                      value=data['music_channel'], inline=True)
-        em.add_field(name='Radio enabled',
+        em.add_field(name=tr(inter, "RS_RADIO_ENABLED"),
                      value='yes' if data['radio_enabled'] else 'no', inline=True)
-        em.add_field(name='Shuffle enabled',
+        em.add_field(name=tr(inter, "RS_SHUFFLE"),
                      value='yes' if data['shuffle'] else 'no', inline=True)
-        em.add_field(name='Playlist urls', value=', '.join(
+        em.add_field(name=tr(inter, "RS_PLAYLISTS"), value=', '.join(
             data['playlist_urls']), inline=True)
 
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-2.png'))
@@ -263,8 +264,8 @@ class Radio(commands.Cog):
         await inter.response.defer()
 
         if not inter.user.guild_permissions.administrator:
-            em = Embed(title="No permissions",
-                       description="You don't have enough permissions to execute that command!", colour=Colour.brand_red())
+            em = Embed(title=tr(inter, "NO_PERMISSIONS_TITLE"),
+                       description=tr(inter, "NO_PERMISSIONS_DESC"), colour=Colour.brand_red())
             em.set_thumbnail(url='attachment://sad-3.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.gif'))
             return
@@ -273,26 +274,26 @@ class Radio(commands.Cog):
         data = db.get_server(inter.guild.id)
 
         if data['music_channel'] == 0 or data['playlist_urls'] == []:
-            em = Embed(title='Setup radio first!',
-                       description='Use command /setup_radio to setup radio on your server. (You must have Administrator permissions)', colour=Colour.brand_red())
+            em = Embed(title=tr(inter, "SETUP_RADIO_TITLE"),
+                       description=tr(inter, "SETUP_RADIO_DESC"), colour=Colour.brand_red())
             em.set_thumbnail(url='attachment://shouting-1.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/shouting-1.png'))
             return
 
         if toggle:
-            em = Embed(title='Trying to find voicechannel...',
-                       description='Please wait.', colour=Colour.blurple())
+            em = Embed(title=tr(inter, "RADIO_SEARCHING_TITLE"),
+                       description=tr(inter, "RADIO_SEARCHING_DESC"), colour=Colour.blurple())
             await inter.edit_original_message(embed=em)
             try:
                 channel: nextcord.VoiceChannel = await self.bot.fetch_channel(data['music_channel'])
             except:
-                em.title = 'Voicechannel not found!'
-                em.description = 'Setup radio again.'
+                em.title = tr(inter, "RADIO_NOT_FOUND_TITLE")
+                em.description = tr(inter, "RADIO_NOT_FOUND_DESC")
                 em.colour = Colour.red()
                 await inter.edit_original_message(embed=em)
                 return
 
-            em.title = 'Channel found! Setting everything up...'
+            em.title = tr(inter, "RADIO_FOUND")
             await inter.edit_original_message(embed=em)
 
             if inter.guild.voice_client is not None:
@@ -300,12 +301,12 @@ class Radio(commands.Cog):
 
             await start_radio(self.bot, inter.guild.id)
 
-            em.title = 'Setting everything up! Currently trying to get your playlist.'
+            em.title = tr(inter, "RADIO_SETUP")
             await inter.edit_original_message(embed=em)
 
             db.update_server(inter.guild.id, ('radio_enabled', 1))
-            em.title = 'Everything is done!'
-            em.description = f'Radio will work 24/7!'
+            em.title = tr(inter, "RADIO_DONE_TITLE")
+            em.description = tr(inter, "RADIO_DONE_DESC")
             em.colour = CColour.orange
             em.set_thumbnail(url='attachment://happy-5.gif')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-5.gif'))
@@ -318,8 +319,8 @@ class Radio(commands.Cog):
             await inter.guild.voice_client.stop()
             await inter.guild.voice_client.disconnect(force=True)
 
-        em = Embed(title='Radio was disabled!',
-                   description='Use command /radio on to enable it!', colour=CColour.brown)
+        em = Embed(title=tr(inter, "RADIO_DISABLED_TITLE"),
+                   description=tr(inter, "RADIO_DISABLED_DESC"), colour=CColour.brown)
         em.set_thumbnail(url='attachment://thinking.png')
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/thinking.png'))
 
@@ -327,8 +328,8 @@ class Radio(commands.Cog):
 async def check_radio(inter: Interaction) -> bool:
     if inter.guild.voice_client is not None:
         if db.get_server(inter.guild.id)['radio_enabled'] == 1:
-            em = Embed(title='Turn off radio first!',
-                       description="To use that feature you need to turn off radio using command /radio off", colour=Colour.brand_red())
+            em = Embed(title=tr(inter, "CHECK_RADIO_TITLE"),
+                       description=tr(inter, "CHECK_RADIO_DESC"), colour=Colour.brand_red())
             em.set_thumbnail(url='attachment://sad.gif')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
             return True

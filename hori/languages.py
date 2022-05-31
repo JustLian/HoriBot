@@ -8,8 +8,8 @@ langs = {}
 for tf in filter(lambda x: x.endswith('.json'), os.listdir('./assets/languages')):
     with open(f'./assets/languages/{tf}', 'r') as f:
         tr = load(f)
-        langs[tr['id']] = tr
-        print(f'Loaded {tr["id"]} translation')
+        langs[tr['ID']] = tr
+        print(f'Loaded {tr["ID"]} translation')
 
 
 def tr(obj, key: str) -> str:
@@ -22,7 +22,7 @@ def tr(obj, key: str) -> str:
     else:
         return 'UNKNOWN_OBJECT_TYPE'
 
-    lang = db.get_server('lid')['language']
+    lang = db.get_server(id)['language']
     if lang not in langs:
         return 'UNKNOWN_LANGUAGE'
 

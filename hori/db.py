@@ -17,7 +17,8 @@ cur.execute(f'''CREATE TABLE IF NOT EXISTS servers (
     music_channel INT,
     radio_enabled INT,
     shuffle INT,
-    playlist_urls TEXT
+    playlist_urls TEXT,
+    language TEXT
 )''')
 
 
@@ -29,7 +30,7 @@ def create_server(id) -> None:
     data = cur.fetchone()
     if data is None:
         cur.execute(
-            f'''INSERT INTO servers VALUES({id}, 0, 0, 0, "[]")''')
+            f'''INSERT INTO servers VALUES({id}, 0, 0, 0, "[]", "EN")''')
         db.commit()
     cur.close()
     db.close()
@@ -56,7 +57,7 @@ def get_server(id) -> dict:
     d = cur.fetchone()
     cur.close()
     db.close()
-    return {'id': d[0], 'music_channel': d[1], 'radio_enabled': d[2], 'shuffle': d[3], 'playlist_urls': json.loads(d[4])}
+    return {'id': d[0], 'music_channel': d[1], 'radio_enabled': d[2], 'shuffle': d[3], 'playlist_urls': json.loads(d[4]), "language": d[5]}
 
 
 def get_servers() -> list[int]:
