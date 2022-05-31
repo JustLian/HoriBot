@@ -6,3 +6,4 @@ PyNaCl
 pytube
 nextwave
 lyricsgenius
+topggpy

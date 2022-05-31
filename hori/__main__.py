@@ -5,13 +5,17 @@ from hori import db, CColour, PRESENCE_LOOP_COOLDOWN
 from termcolor import colored
 from nextcord import Embed
 from nextcord.ext import commands, tasks
+import topgg
 
 
 with open('./secrets/bot_token', 'r') as f:
     _token = f.read().strip()
+with open('./secrets/topgg_token', 'r') as f:
+    _topgg_token = f.read().strip()
 restart_in = None
 
 bot = commands.Bot(command_prefix='hori/', intents=nextcord.Intents.all())
+topgg_api = topgg.client.DBLClient(token=_topgg_token)
 
 
 @bot.event
@@ -57,6 +61,11 @@ async def on_guild_join(guild: nextcord.Guild):
 @bot.event
 async def on_guild_remove(guild):
     db.delete_server(guild.id)
+
+
+@tasks.loop(minutes=1)
+async def topgg_loop():
+    await topgg_api.post_guild_count(len(bot.guilds))
 
 
 @tasks.loop(seconds=PRESENCE_LOOP_COOLDOWN * 2)
