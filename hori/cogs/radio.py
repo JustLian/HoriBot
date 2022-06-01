@@ -1,7 +1,6 @@
-from re import I, S
 import traceback
 
-from pyrsistent import discard
+import topgg
 from hori import GUILDS, db, CColour
 from pytube import Playlist
 from random import shuffle
@@ -16,6 +15,8 @@ import nextwave
 
 
 skips = {}
+with open('./secrets/topgg_token', 'r') as f:
+    _topgg_token = f.read().strip()
 
 
 async def start_radio(bot: commands.Bot, guild: int) -> None:
@@ -380,6 +381,7 @@ async def add_player_track(query: str, vc: nextwave.Player) -> None | str:
 class Player(commands.Cog):
     def __init__(self, bot):
         self.bot: commands.Bot = bot
+        self.tgg = topgg.client.DBLClient(bot, _topgg_token)
 
     @nextcord.slash_command('play', 'Play song from link/YT search')
     async def cmd_play(self, inter: Interaction, query: str = SlashOption('query', 'Link to YT/YTMusic video or video name', True)):
@@ -391,6 +393,20 @@ class Player(commands.Cog):
             return
 
         vc: nextwave.Player = inter.guild.voice_client
+
+        if len(vc.queue) > 30:
+            if not (await self.tgg.get_user_vote(inter.user.id)):
+                em = Embed(title='Song limit reached',
+                           description='Vote on [top.gg](https://top.gg/bot/977152841514901555/vote) to expand the limit to 100 songs', colour=CColour.dark_brown)
+                em.set_thumbnail(url='attachment://sad.gif')
+                await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
+                return
+            elif len(vc.queue) > 100:
+                em = Embed(title='Song limit reached',
+                           description='You can add a maximum of 100 songs to the queue', colour=CColour.dark_brown)
+                em.set_thumbnail(url='attachment://sad.gif')
+                await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
+                return
 
         res = await add_player_track(query, vc)
         if res is not None:
@@ -437,6 +453,13 @@ class Player(commands.Cog):
                        description="You don't have Manage channels permission", colour=CColour.dark_brown)
             em.set_thumbnail(url='attachment://sad-3.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./asssets/emotes/sad-3.png'))
+            return
+
+        if not (await self.tgg.get_user_vote(inter.user.id)):
+            em = Embed(title='Vote first!',
+                       description='You must vote on [top.gg](https://top.gg/bot/977152841514901555/vote) to use this command', colour=CColour.dark_brown)
+            em.set_thumbnail(url='attachment://sad.gif')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
             return
 
         em = Embed(title="Skipping current song!",
