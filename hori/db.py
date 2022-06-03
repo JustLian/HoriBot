@@ -22,7 +22,6 @@ cur.execute(f'''CREATE TABLE IF NOT EXISTS servers (
 
 
 def create_server(id) -> None:
-    create_server(id)
     db = _connect_db()
     cur = db.cursor()
 
