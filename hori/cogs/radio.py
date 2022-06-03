@@ -360,16 +360,29 @@ async def setup_player(inter: Interaction) -> bool:
 
 async def add_player_track(query: str, vc: nextwave.Player) -> None | str:
     node = nextwave.NodePool.get_node()
-    if 'https://music.youtube.com/' in query:
+    if ('https://music.youtube.com/' in query or 'https://www.youtube.com/' in query) and 'playlist' in query:
+        urls = list(Playlist(query).video_urls)
+        pool = [0 for _ in range(len(urls))]
+        ready = []
+        for url in enumerate(urls):
+            asyncio.create_task(add_track(url[1], pool, url[0], ready))
+        while len(ready) != len(urls):
+            await asyncio.sleep(2)
+        while 0 in pool:
+            pool.remove(0)
+        vc.queue.extend(pool)
+    elif 'https://music.youtube.com/' in query:
         try:
             vc.queue.extend(await node.get_tracks(nextwave.YouTubeMusicTrack, query))
         except:
-            return 'Invalid YTMusic link (Playlists currently not supported, but we are working on it!)'
+            return 'Invalid YTMusic link'
     elif 'https://www.youtube.com/' in query:
         try:
             vc.queue.extend(await node.get_tracks(nextwave.YouTubeTrack, query))
         except:
             return 'Invalid YT link (Playlists currently not supported, but we are working on it!)'
+    elif 'https://soundcloud.com/' in query:
+        return "Hori does not currently support Soundcloud. During the development process, we encountered a very strange error: [issue on github](https://github.com/JustLian/HoriBot/issues/7)"
     else:
         try:
             vc.queue.put((await nextwave.YouTubeTrack.search(query))[0])
@@ -434,7 +447,7 @@ class Player(commands.Cog):
 
         vc: nextwave.Player = inter.guild.voice_client
         em = Embed(title='Queue', colour=CColour.orange, description=f'**1** | {vc.track.title}\n' + '\n'.join([
-            f'**{s[0] + 2}** | {s[1].title}' for s in enumerate(vc.queue)]))
+            f'**{s[0] + 2}** | {s[1].title}' for s in enumerate(vc.queue)]) if vc.is_playing() or vc.is_paused() else '\n'.join([f'**{s[0] + 1}** | {s[1].title}' for s in enumerate(vc.queue)]))
         em.set_thumbnail(url='attachment://happy-4.png')
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
 
@@ -519,6 +532,7 @@ class Player(commands.Cog):
                    description="I hope you liked the music!", colour=CColour.light_orange)
         em.set_thumbnail(url='attachment://happy-4.png')
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
+        await inter.guild.me.edit(nick=self.bot.user.name)
 
 
 def setup(bot):
