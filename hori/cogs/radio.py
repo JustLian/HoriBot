@@ -364,12 +364,12 @@ async def add_player_track(query: str, vc: nextwave.Player) -> None | str:
         try:
             vc.queue.extend(await node.get_tracks(nextwave.YouTubeMusicTrack, query))
         except:
-            return 'Invalid YTMusic link'
+            return 'Invalid YTMusic link (Playlists currently not supported, but we are working on it!)'
     elif 'https://www.youtube.com/' in query:
         try:
             vc.queue.extend(await node.get_tracks(nextwave.YouTubeTrack, query))
         except:
-            return 'Invalid YT link'
+            return 'Invalid YT link (Playlists currently not supported, but we are working on it!)'
     else:
         try:
             vc.queue.put((await nextwave.YouTubeTrack.search(query))[0])
