@@ -198,7 +198,7 @@ class Radio(commands.Cog):
         if add_url:
             if add_url in data['playlist_urls']:
                 em = Embed(title="Playlist is already in library",
-                           description="If you know that playlist is not in library report that on our github with your server id (https://github.com/JustLian/HoriBot", colour=CColour.dark_brown())
+                           description="If you know that playlist is not in library report that on our github with your server id (https://github.com/JustLian/HoriBot", colour=CColour.dark_brown)
                 em.set_thumbnail(url='attachment://sad-3.png')
                 await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
                 return
@@ -211,7 +211,7 @@ class Radio(commands.Cog):
         if remove_url:
             if add_url not in data['playlist_urls']:
                 em = Embed(title="Playlist is not in library",
-                           description="If you know that playlist is in library report that on our github with your server id (https://github.com/JustLian/HoriBot", colour=CColour.dark_brown())
+                           description="If you know that playlist is in library report that on our github with your server id (https://github.com/JustLian/HoriBot", colour=CColour.dark_brown)
                 em.set_thumbnail(url='attachment://sad-3.png')
                 await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
                 return
@@ -276,7 +276,7 @@ class Radio(commands.Cog):
 
         if data['music_channel'] == 0 or data['playlist_urls'] == []:
             em = Embed(title='Setup radio first!',
-                       description='Use command /setup_radio to setup radio on your server. (You must have Administrator permissions)', colour=Colour.brand_red())
+                       description='Use command /radio_settings to setup radio on your server. (You must have Administrator permissions)', colour=Colour.brand_red())
             em.set_thumbnail(url='attachment://shouting-1.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/shouting-1.png'))
             return
@@ -371,14 +371,17 @@ async def add_player_track(query: str, vc: nextwave.Player) -> None | str:
         while 0 in pool:
             pool.remove(0)
         vc.queue.extend(pool)
+        return 'playlist'
     elif 'https://music.youtube.com/' in query:
         try:
             vc.queue.extend(await node.get_tracks(nextwave.YouTubeMusicTrack, query))
+            return 'song'
         except:
             return 'Invalid YTMusic link'
     elif 'https://www.youtube.com/' in query:
         try:
             vc.queue.extend(await node.get_tracks(nextwave.YouTubeTrack, query))
+            return 'song'
         except:
             return 'Invalid YT link (Playlists currently not supported, but we are working on it!)'
     elif 'https://soundcloud.com/' in query:
@@ -386,6 +389,7 @@ async def add_player_track(query: str, vc: nextwave.Player) -> None | str:
     else:
         try:
             vc.queue.put((await nextwave.YouTubeTrack.search(query))[0])
+            return 'song'
         except:
             return 'Nothing found for this query'
 
@@ -421,17 +425,17 @@ class Player(commands.Cog):
                 return
 
         res = await add_player_track(query, vc)
-        if res is not None:
+        if res not in ['song', 'playlist']:
             em = Embed(title='Try another query',
                        description=res, colour=Colour.brand_red())
             em.set_thumbnail(url='attachment://sad-3.png')
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
             return
 
-        if not vc.is_playing() and not vc.is_paused():
+        if not vc.is_playing() and not vc.is_paused(res):
             await vc.play(vc.queue.get())
 
-        em = Embed(title='Done!', description='Added new song to queue',
+        em = Embed(title='Done!', description=f'Added new {res} to queue',
                    colour=CColour.light_orange)
         em.set_thumbnail(url='attachment://happy-2.png')
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-2.png'))
@@ -446,8 +450,10 @@ class Player(commands.Cog):
             return
 
         vc: nextwave.Player = inter.guild.voice_client
-        em = Embed(title='Queue', colour=CColour.orange, description=f'**1** | {vc.track.title}\n' + '\n'.join([
-            f'**{s[0] + 2}** | {s[1].title}' for s in enumerate(vc.queue)]) if vc.is_playing() or vc.is_paused() else '\n'.join([f'**{s[0] + 1}** | {s[1].title}' for s in enumerate(vc.queue)]))
+        q = f'**1** | {vc.track.title}\n' + '\n'.join([
+            f'**{s[0] + 2}** | {s[1].title}' for s in enumerate(vc.queue)]) if vc.is_playing() or vc.is_paused() else '\n'.join([f'**{s[0] + 1}** | {s[1].title}' for s in enumerate(vc.queue)])
+        em = Embed(title='Queue', colour=CColour.orange,
+                   description=q if len(q) <= 4096 else q[:4093] + '...')
         em.set_thumbnail(url='attachment://happy-4.png')
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
 
