@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import nextcord
 from hori import db, CColour, PRESENCE_LOOP_COOLDOWN
@@ -7,6 +8,13 @@ from nextcord import Embed
 from nextcord.ext import commands, tasks
 import topgg
 
+
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler('bot.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter(
+    '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 
 with open('./secrets/bot_token', 'r') as f:
     _token = f.read().strip()
@@ -36,6 +44,8 @@ async def cmd_restart_presence(ctx: commands.Context, minutes: int):
 @bot.event
 async def on_ready():
     print('Loaded ', colored('Hori', 'magenta'), '!', sep='')
+    for guild in bot.guilds:
+        db.create_server(guild.id)
     await asyncio.sleep(2)
     await presence_loop.start()
 

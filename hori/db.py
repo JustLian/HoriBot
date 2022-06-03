@@ -22,6 +22,7 @@ cur.execute(f'''CREATE TABLE IF NOT EXISTS servers (
 
 
 def create_server(id) -> None:
+    create_server(id)
     db = _connect_db()
     cur = db.cursor()
 
@@ -50,6 +51,7 @@ def delete_server(id) -> None:
 
 
 def get_server(id) -> dict:
+    create_server(id)
     db = _connect_db()
     cur = db.cursor()
     cur.execute(f'''SELECT * FROM servers WHERE id = {id}''')
@@ -70,6 +72,7 @@ def get_servers() -> list[int]:
 
 
 def update_server(id, *args) -> None:
+    create_server(id)
     db = _connect_db()
     cur = db.cursor()
     for st in args:

@@ -1,5 +1,4 @@
 import traceback
-
 import topgg
 from hori import GUILDS, db, CColour
 from pytube import Playlist
