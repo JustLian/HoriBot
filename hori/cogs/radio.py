@@ -36,7 +36,10 @@ async def start_radio(bot: commands.Bot, guild: int) -> None:
     queue = []
     ready = []
     for pl in enumerate(data['playlist_urls']):
-        urls = list(Playlist(pl[1]).video_urls)
+        try:
+            urls = list(Playlist(pl[1]).video_urls)
+        except:
+            return f'Incorrect playlist url: {pl[1]}'
         pool = [0 for _ in range(len(urls))]
         for url in enumerate(urls):
             asyncio.create_task(
@@ -300,10 +303,14 @@ class Radio(commands.Cog):
             if inter.guild.voice_client is not None:
                 await inter.guild.voice_client.disconnect(force=True)
 
-            await start_radio(self.bot, inter.guild.id)
-
-            em.title = 'Setting everything up! Currently trying to get your playlist.'
-            await inter.edit_original_message(embed=em)
+            result = await start_radio(self.bot, inter.guild.id)
+            if result is not None:
+                em.title = 'Something went wrong!'
+                em.description = f'Error message: {result}'
+                em.colour = Colour.red()
+                em.set_thumbnail(url='attachment://sad-2.gif')
+                await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-2.gif'))
+                return
 
             db.update_server(inter.guild.id, ('radio_enabled', 1))
             em.title = 'Everything is done!'
