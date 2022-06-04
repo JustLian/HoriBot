@@ -470,7 +470,7 @@ class Player(commands.Cog):
             em = Embed(title='No permissions',
                        description="You don't have Manage channels permission", colour=CColour.dark_brown)
             em.set_thumbnail(url='attachment://sad-3.png')
-            await inter.edit_original_message(embed=em, file=nextcord.File('./asssets/emotes/sad-3.png'))
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
             return
 
         if not (await self.tgg.get_user_vote(inter.user.id)):
@@ -546,7 +546,7 @@ class Player(commands.Cog):
             em = Embed(title='No permissions',
                        description="You don't have Manage channels permission", colour=CColour.dark_brown)
             em.set_thumbnail(url='attachment://sad-3.png')
-            await inter.edit_original_message(embed=em, file=nextcord.File('./asssets/emotes/sad-3.png'))
+            await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
             return
 
         vc: nextwave.Player = inter.guild.voice_client
