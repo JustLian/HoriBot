@@ -3,12 +3,17 @@ from nextcord import Interaction, Embed, SlashOption
 import lyricsgenius
 import nextcord
 from nextcord.ext import commands
+import requests
 from hori import GUILDS, CColour
 import asyncio
 
 
+PASTEBIN_URL = 'https://pastebin.com/api/api_post.php'
+
 with open('./secrets/genius_token', 'r') as f:
     _genius_token = f.read().strip()
+with open('./secrets/pastebin_token', 'r') as f:
+    _pastebin_token = f.read().strip()
 genius = lyricsgenius.Genius(_genius_token, verbose=False)
 
 
@@ -64,6 +69,7 @@ class Main(commands.Cog):
     @ nextcord.slash_command('artist', "Search artist's songs on Genius", GUILDS)
     async def cmd_artist(self, inter: Interaction, name: str = SlashOption('name', "Artist's name", True)):
         await inter.response.defer()
+        1 / 0
 
         artist = await asyncio.get_event_loop().run_in_executor(
             None, genius.search_artist, name, 15)
@@ -85,10 +91,12 @@ class Main(commands.Cog):
     @commands.Cog.listener()
     async def on_application_command_error(self, inter: Interaction, err):
         em = Embed(title='Error occurred!',
-                   description='Please copy text from message below and create bug report on [Github](https://github.com/JustLian/HoriBot) or contact developer on [support server](https://discord.gg/gSvt9TpHkG)')
+                   description='Please copy link from message below and create bug report on [Github](https://github.com/JustLian/HoriBot) or contact developer on [support server](https://discord.gg/gSvt9TpHkG)')
         em.set_thumbnail(url='attachment://sad.gif')
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad.gif'))
-        await inter.send(''.join(traceback.format_exception(err)))
+        resp = requests.post(PASTEBIN_URL, data={
+                             'api_dev_key': _pastebin_token, 'api_option': 'paste', 'api_paste_code': ''.join(traceback.format_exception(err)), 'api_paste_private': '1', 'api_paste_name': f'/{inter.application_command.name}; {inter.guild.id}; {inter.user.id}'})
+        await inter.send(str(resp.content)[2:-1])
 
 
 def setup(bot):
