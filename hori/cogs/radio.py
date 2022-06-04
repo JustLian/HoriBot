@@ -432,7 +432,7 @@ class Player(commands.Cog):
             await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/sad-3.png'))
             return
 
-        if not vc.is_playing() and not vc.is_paused(res):
+        if not vc.is_playing() and not vc.is_paused():
             await vc.play(vc.queue.get())
 
         em = Embed(title='Done!', description=f'Added new {res} to queue',
@@ -495,13 +495,6 @@ class Player(commands.Cog):
         if not await setup_player(inter):
             return
 
-        if not inter.user.guild_permissions.manage_channels:
-            em = Embed(title='No permissions',
-                       description="You don't have Manage channels permission", colour=CColour.dark_brown)
-            em.set_thumbnail(url='attachment://sad-3.png')
-            await inter.edit_original_message(embed=em, file=nextcord.File('./asssets/emotes/sad-3.png'))
-            return
-
         vc: nextwave.Player = inter.guild.voice_client
 
         if vc.is_paused():
@@ -539,6 +532,30 @@ class Player(commands.Cog):
         em.set_thumbnail(url='attachment://happy-4.png')
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-4.png'))
         await inter.guild.me.edit(nick=self.bot.user.name)
+
+    @nextcord.slash_command('volume', 'Set play volume (0-200)')
+    async def cmd_volume(self, inter: Interaction, vol: int = SlashOption('volume', required=True, min_value=0, max_value=200)):
+        await inter.response.defer()
+        if await check_radio(inter):
+            return
+
+        if not await setup_player(inter):
+            return
+
+        if not inter.user.guild_permissions.manage_channels:
+            em = Embed(title='No permissions',
+                       description="You don't have Manage channels permission", colour=CColour.dark_brown)
+            em.set_thumbnail(url='attachment://sad-3.png')
+            await inter.edit_original_message(embed=em, file=nextcord.File('./asssets/emotes/sad-3.png'))
+            return
+
+        vc: nextwave.Player = inter.guild.voice_client
+
+        await vc.set_volume(vol)
+        em = Embed(title="Volume set!",
+                   description=f"Current volume: {vol}", colour=CColour.light_orange)
+        em.set_thumbnail(url='attachment://happy-3.png')
+        await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-3.png'))
 
 
 def setup(bot):
