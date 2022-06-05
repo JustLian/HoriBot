@@ -259,7 +259,7 @@ class Radio(commands.Cog):
         em.add_field(name='Shuffle enabled',
                      value='yes' if data['shuffle'] else 'no', inline=True)
         em.add_field(name='Playlist urls', value=', '.join(
-            data['playlist_urls']), inline=True)
+            data['playlist_urls']) if data['playlist_url'] != [] else 'Empty', inline=True)
 
         await inter.edit_original_message(embed=em, file=nextcord.File('./assets/emotes/happy-2.png'))
 
