@@ -1,12 +1,15 @@
 import asyncio
 import logging
 import os
+import traceback
 import nextcord
 from hori import db, CColour, PRESENCE_LOOP_COOLDOWN
 from termcolor import colored
 from nextcord import Embed
 from nextcord.ext import commands, tasks
 import topgg
+
+import hori
 
 
 logger = logging.getLogger('discord')
@@ -39,6 +42,20 @@ async def cmd_restart_presence(ctx: commands.Context, minutes: int):
     if (await bot.application_info()).owner.id == ctx.author.id:
         restart_in = minutes
         await ctx.reply('done')
+
+
+@bot.command('reload_ext')
+async def cmd_reload_ext(ctx: commands.Context, name: str):
+    if (await bot.application_info()).owner.id == ctx.author.id:
+        print(f'Reloading extension {name}')
+        await ctx.reply(f'reloading extension {name}')
+        try:
+            bot.reload_extension(name)
+            print(f'Reloaded extension {name}')
+            await ctx.reply(f'success!')
+        except Exception as e:
+            print(f'Error: {e}')
+            await ctx.reply(f'error occurred: {e}')
 
 
 @bot.event

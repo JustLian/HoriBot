@@ -1,8 +1,10 @@
 from nextcord import Colour
+from json import load
 __version__ = '1.0a'
 
 
-GUILDS = [978569287444889610, 815880751920054352]
+with open('./secrets/guilds.json', 'r') as f:
+    GUILDS = load(f)
 PRESENCE_LOOP_COOLDOWN = 15
 
 
