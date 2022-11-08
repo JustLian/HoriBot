@@ -1,3 +1,4 @@
+# Moved to Siesta Bot (https://siesta.euphoverse.moe - site might be down)
 # HoriBot
 [Invite](https://discord.com/api/oauth2/authorize?client_id=977152841514901555&permissions=70257664&scope=bot%20applications.commands)  
 [top.gg](https://top.gg/bot/977152841514901555) | 
